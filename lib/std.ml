@@ -44,7 +44,7 @@ module Extra_nottui = struct
           let attr = attr_clickable in
           let len = String.length text in
           (if pos >= len then [ I.string attr text ]
-          else [ I.string attr (sub' text 0 pos) ])
+           else [ I.string attr (sub' text 0 pos) ])
           @
           if pos < String.length text then
             [
@@ -398,7 +398,7 @@ module Modal_shortcuts = struct
           (S.bind items
              ~f:
                (if vertical then vbox
-               else fun items -> hbox (List.intersperse ~sep:(space 1 0) items)))
+                else fun items -> hbox (List.intersperse ~sep:(space 1 0) items)))
         --- Debug.(
               if_var self.debug @@ fun () ->
               let* l = V.get logs in
