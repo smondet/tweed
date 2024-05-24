@@ -29,7 +29,7 @@ module Extra_nottui = struct
   open! Nottui
 
   let mini, maxi, clampi = Lwd_utils.(mini, maxi, clampi)
-  let attr_clickable = A.(bg lightblue)
+  let attr_clickable = A.(bg lightcyan)
 
   let sub' str p l =
     if p = 0 && l = String.length str then str else String.sub str ~pos:p ~len:l
