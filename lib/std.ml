@@ -221,24 +221,28 @@ end
 
 module Modal_shortcuts = struct
   module Mode = struct
-    type action_result =
-      [ `Mode of t | `Home | `Up | `Quit | `Stay | `Prompt of prompt ]
+    type 'tag action_result =
+      [ `Mode of 'tag t | `Home | `Up | `Quit | `Stay | `Prompt of 'tag prompt ]
 
-    and prompt = {
+    and 'tag prompt = {
       label : string S.t;
-      action : string -> action_result;
+      action : string -> 'tag action_result;
       initial_value : string;
     }
 
-    and shortcut =
+    and 'tag shortcut =
       (* | Idle *)
       | On_key of {
           key : char option;
           name : string S.t;
-          action : unit -> action_result;
+          action : unit -> 'tag action_result;
         }
 
-    and t = { vertical : bool S.t; bindings : shortcut list S.t }
+    and 'tag t = {
+      tag : 'tag option;
+      vertical : bool S.t;
+      bindings : 'tag shortcut list S.t;
+    }
 
     let entry ?key name ~action = On_key { key; name; action }
     let on_key key name ~action = entry ~key (return name) ~action
@@ -248,8 +252,10 @@ module Modal_shortcuts = struct
     let prompt ~label ?(initial_value = "") action =
       { label; action; initial_value }
 
-    let mode_dyn ?(vertical = return true) bindings = { bindings; vertical }
-    let mode ?vertical bindings = mode_dyn ?vertical (return bindings)
+    let mode_dyn ?(vertical = return true) ?tag bindings =
+      { tag; bindings; vertical }
+
+    let mode ?vertical ?tag bindings = mode_dyn ?tag ?vertical (return bindings)
   end
 
   module Modifier = struct
@@ -257,10 +263,10 @@ module Modal_shortcuts = struct
     [@@deriving sexp, compare, equal, variants, show]
   end
 
-  type t = {
-    root : Mode.t; [@main]
-    mode_stack : Mode.t list V.t; [@default V.make []]
-    input_mode : [ `Single_key | `Match | `Prompting of Mode.prompt ] V.t;
+  type 'tag t = {
+    root : 'tag Mode.t; [@main]
+    mode_stack : 'tag Mode.t list V.t; [@default V.make []]
+    input_mode : [ `Single_key | `Match | `Prompting of 'tag Mode.prompt ] V.t;
         [@default V.make `Single_key]
     match_text : string V.t; [@default V.make ""]
     errors : Errors.t; [@default Errors.make ()]
@@ -310,7 +316,7 @@ module Modal_shortcuts = struct
       V.set self.choice 0
     in
     let run_action action =
-      match (action () : Mode.action_result) with
+      match (action () : _ Mode.action_result) with
       | `Quit -> assert false
       | `Stay -> set_mode_stack (V.peek self.mode_stack)
       | `Home -> set_mode_stack []

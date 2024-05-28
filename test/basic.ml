@@ -4,7 +4,7 @@ open! Tweed.Std
 type t = {
   bpm : int V.t; [@default V.make 120]
   quit : bool V.t; [@default V.make false]
-  shortcuts : Modal_shortcuts.t option V.t; [@default V.make None]
+  shortcuts : unit Modal_shortcuts.t option V.t; [@default V.make None]
   data : float V.t; [@default V.make 0.]
   errors : Errors.t; [@default Errors.make ()]
 }
