@@ -256,6 +256,7 @@ module Modal_shortcuts = struct
       { tag; bindings; vertical }
 
     let mode ?vertical ?tag bindings = mode_dyn ?tag ?vertical (return bindings)
+    let tag { tag; _ } = tag
   end
 
   module Modifier = struct
@@ -281,6 +282,9 @@ module Modal_shortcuts = struct
     S.map (V.get self.mode_stack) ~f:(function
       | mode :: _tail -> mode
       | [] -> self.root)
+
+  let peek_current_mode self =
+    match V.peek self.mode_stack with mode :: _tail -> mode | [] -> self.root
 
   let filter_bindings self =
     let* mode = current_mode self and* match_text = V.get self.match_text in
