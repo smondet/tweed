@@ -1,0 +1,6 @@
+(executable
+ (name basic)
+ (modules basic)
+ (libraries tweed)
+ (preprocess
+  (pps ppx_base ppx_deriving.std ppx_fields_conv ppx_variants_conv)))

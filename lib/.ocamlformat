@@ -1,0 +1,5 @@
+version=0.26.1
+profile=default
+exp-grouping=preserve
+parse-docstrings
+sequence-blank-line=compact
