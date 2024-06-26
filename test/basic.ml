@@ -4,7 +4,7 @@ open! Tweed.Std
 type t = {
   bpm : int V.t; [@default V.make 120]
   quit : bool V.t; [@default V.make false]
-  shortcuts : unit Modal_shortcuts.t option V.t; [@default V.make None]
+  (* shortcuts : unit Modal_shortcuts.t option V.t; [@default V.make None] *)
   data : float V.t; [@default V.make 0.]
   errors : Errors.t; [@default Errors.make ()]
 }
@@ -15,7 +15,7 @@ let menu self =
   let b_activated = Lwd.var false in
   let vertical = V.make false in
   let rec menu () =
-    mode ~vertical:(V.get vertical)
+    mode ~vertical:(V.get vertical) ~tag:`Metronome
       [
         on_key '=' "increase bpm" ~action:(fun () ->
             V.set self.bpm (V.peek self.bpm + 1);
@@ -57,7 +57,7 @@ let menu self =
               `Stay);
         on_key 'a' "Submenu" ~action:(fun () ->
             `Mode
-              (mode
+              (mode ~tag:`Other_mode
                  [
                    on_key 'b' "Bbbb home" ~action:(fun () ->
                        Lwd.set b_activated (Lwd.peek b_activated |> not);
@@ -85,21 +85,34 @@ let menu self =
 let root self =
   let open Tweed.Std in
   let shortcuts = Modal_shortcuts.(make ~debug:(V.make true) (menu self)) in
-  V.set self.shortcuts (Some shortcuts);
+  (* V.set self.shortcuts (Some shortcuts); *)
+  let main_page =
+    let* tago =
+      Modal_shortcuts.current_mode shortcuts
+      |> S.map ~f:Modal_shortcuts.Mode.tag
+    in
+    match tago with
+    | None -> empty ()
+    | Some `Other_mode ->
+        verbatim ~attr:Attr.(st bold ++ fg blue) "Some other non-metronome mode"
+    | Some `Metronome ->
+        verbatim ~attr:Attr.(st bold ++ fg blue) "Metronome mode"
+        --- S.bind (V.get self.bpm) ~f:(Fmt.kstr verbatim "BPM: %d")
+        --- hspace 2
+        --- S.bind (V.get self.data) ~f:(fun v ->
+                (* Fmt.kstr verbatim "Data: %f" v
+                   %% *)
+                Fmt.kstr verbatim "Metronome: %s"
+                  (String.init
+                     (v *. 40. |> Float.to_int)
+                     ~f:(function i when Int.(i % 10 = 0) -> '#' | _ -> '=')))
+  in
   scrollbox
-  @@ Modal_shortcuts.(
-       render shortcuts (* ~scoped_ui:(fun ui -> scroll_vbox [ ui ]) *))
-     --- hspace 2
-     --- S.bind (V.get self.bpm) ~f:(Fmt.kstr verbatim "BPM: %d")
-     --- hspace 2
-     --- S.bind (V.get self.data) ~f:(fun v ->
-             (* Fmt.kstr verbatim "Data: %f" v
-                %% *)
-             Fmt.kstr verbatim "Metronome: %s"
-               (String.init
-                  (v *. 40. |> Float.to_int)
-                  ~f:(function i when Int.(i % 10 = 0) -> '#' | _ -> '=')))
-     --- Errors.render self.errors
+    begin
+      Modal_shortcuts.render
+        shortcuts (* ~scoped_ui:(fun ui -> scroll_vbox [ ui ]) *)
+      --- hspace 2 --- main_page --- Errors.render self.errors
+    end
 
 let () =
   let self = make () in
