@@ -117,7 +117,11 @@ module Extra_nottui = struct
         Ui.mouse_area (mouse_grab state) content)
 end
 
-type t = Nottui.ui Lwd.t
+module Ui_doc = struct
+  type t = Nottui.ui Lwd.t
+end
+
+open Ui_doc
 
 module Internal = struct
   let pack : 'a Lwd_utils.monoid -> t list -> t = Lwd_utils.pack
@@ -473,14 +477,6 @@ module Run_ui = struct
   let start = Ui_loop.run
 end
 
-module Nottui_widgets = struct
-  let just_dont_use = ()
-end
-
-module Nottui = struct
-  let just_dont_use = ()
-end
-
-module Notty = struct
-  let just_dont_use = ()
-end
+module Nottui_widgets = struct end
+module Nottui = struct end
+module Notty = struct end
