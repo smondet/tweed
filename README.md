@@ -14,7 +14,7 @@ opam_switch_name=tweed51
 opam switch create "$opam_switch_name" \
      --formula='"ocaml-base-compiler" {>= "5.1" & < "5.2"}'
 opam switch link "$opam_switch_name" .
-opam install fmt base nottui ppx_base ppx_deriving ppx_fields_conv ppx_variants_conv ppx_inline_test ppx_expect
+opam install --deps-only .
 ```
 
 

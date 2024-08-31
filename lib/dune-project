@@ -1,5 +1,0 @@
-(lang dune 3.7)
-(package (name tweed))
-
-;;(generate_opam_files true)
-
