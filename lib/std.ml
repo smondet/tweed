@@ -261,6 +261,20 @@ module Modal_shortcuts = struct
 
     let mode ?vertical ?tag bindings = mode_dyn ?tag ?vertical (return bindings)
     let tag { tag; _ } = tag
+
+    let alphanumeric_key index =
+      try
+        Option.some
+          begin
+            match index with
+            | x when x < 0 -> assert false
+            | x when x <= 9 -> Char.of_int_exn (Char.to_int '0' + x)
+            | x when x - 9 <= 26 -> Char.of_int_exn (Char.to_int 'a' + x - 10)
+            | x when x - 9 - 26 <= 26 ->
+                Char.of_int_exn (Char.to_int 'A' + x - 10 - 26)
+            | _ -> assert false
+          end
+      with _ -> None
   end
 
   module Modifier = struct

@@ -169,6 +169,9 @@ module Modal_shortcuts : sig
 
     val mode : ?vertical:bool Lwd.t -> ?tag:'a -> 'a shortcut list -> 'a t
     val tag : 'a t -> 'a option
+
+    val alphanumeric_key : int -> char option
+    (** Get a character from an “index” → '0', '1' … '9', 'a' … 'z', 'A' … 'Z' *)
   end
 
   module Modifier : sig
