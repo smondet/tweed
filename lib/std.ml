@@ -134,7 +134,10 @@ module Attr = Notty.A
 include S.O
 
 let _clean_utf8 = Uunf_string.normalize_utf_8 `NFKD
-let verbatim ?attr s : t = Lwd.pure (Nottui_widgets.string ?attr (_clean_utf8 s))
+
+let verbatim ?attr s : t =
+  Lwd.pure (Nottui_widgets.string ?attr (_clean_utf8 s))
+
 let hbox : t list -> t = fun l -> pack Ui.pack_x l
 let vbox l = pack Ui.pack_y l
 let zbox l = pack Ui.pack_z l
