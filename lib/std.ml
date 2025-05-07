@@ -133,7 +133,9 @@ open Internal
 module Attr = Notty.A
 include S.O
 
-let _clean_utf8 = Uunf_string.normalize_utf_8 `NFKD
+let _clean_utf8 s =
+  Uunf_string.normalize_utf_8 `NFKD s
+  |> String.map ~f:(function '\x7f' -> '~' | c -> c)
 
 let verbatim ?attr s : t =
   Lwd.pure (Nottui_widgets.string ?attr (_clean_utf8 s))
