@@ -190,6 +190,7 @@ module Modal_shortcuts : sig
     debug : bool V.t; [@default V.make false]
     modifier : Modifier.t option;
     navigation_bindings : [ `Vimish of Modifier.t ]; [@default `Vimish `Meta]
+    vertical_max : int V.t; [@default V.make 30]
   }
   [@@deriving fields, make]
 

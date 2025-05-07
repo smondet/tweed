@@ -299,6 +299,7 @@ module Modal_shortcuts = struct
     debug : bool V.t; [@default V.make false]
     modifier : Modifier.t option;
     navigation_bindings : [ `Vimish of Modifier.t ]; [@default `Vimish `Meta]
+    vertical_max : int V.t; [@default V.make 30]
   }
   [@@deriving fields, make]
 
@@ -362,7 +363,8 @@ module Modal_shortcuts = struct
       let* vertical = vertical
       and* current_choice = V.get self.choice
       and* input_mode = V.get self.input_mode
-      and* bindings = filter_bindings self in
+      and* bindings = filter_bindings self
+      and* vertical_max = V.get self.vertical_max in
       let run_current_choice () =
         match List.nth bindings current_choice with
         | Some (On_key { action; _ }) -> run_action action
@@ -429,10 +431,24 @@ module Modal_shortcuts = struct
       in
       let area =
         scoped_ui
-          (S.bind items
-             ~f:
-               (if vertical then vbox
-                else fun items -> hbox (List.intersperse ~sep:(space 1 0) items)))
+          (S.bind items ~f:(fun items ->
+               if vertical then
+                 let lgth = List.length items in
+                 if lgth > vertical_max then begin
+                   let lines = vertical_max in
+                   let lists =
+                     List.init lines ~f:(fun _i ->
+                         ref [ (* Fmt.kstr verbatim "item: %d" i *) ])
+                   in
+                   List.iteri items ~f:(fun ith item ->
+                       let l = List.nth_exn lists Int.O.(ith % lines) in
+                       l := item :: !l);
+                   let chunks = List.map lists ~f:(fun l -> List.rev !l) in
+                   (* List.chunks_of items ~length:(lgth / vertical_max) in *)
+                   grid ~h_space:2 chunks
+                 end
+                 else vbox items
+               else hbox (List.intersperse ~sep:(space 1 0) items)))
         --- Debug.(
               if_var self.debug @@ fun () ->
               let* l = V.get logs in
