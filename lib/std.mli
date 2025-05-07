@@ -179,20 +179,20 @@ module Modal_shortcuts : sig
     [@@deriving sexp, compare, equal, variants, show]
   end
 
-  type 'tag t = {
-    root : 'tag Mode.t; [@main]
-    mode_stack : 'tag Mode.t list V.t; [@default V.make []]
-    input_mode : [ `Single_key | `Match | `Prompting of 'tag Mode.prompt ] V.t;
-        [@default V.make `Single_key]
-    match_text : string V.t; [@default V.make ""]
-    errors : Errors.t; [@default Errors.make ()]
-    choice : int V.t; [@default V.make 0]
-    debug : bool V.t; [@default V.make false]
-    modifier : Modifier.t option;
-    navigation_bindings : [ `Vimish of Modifier.t ]; [@default `Vimish `Meta]
-    vertical_max : int V.t; [@default V.make 30]
-  }
-  [@@deriving fields, make]
+  type 'tag t
+
+  val make :
+    ?mode_stack:'a Mode.t list Lwd.var ->
+    ?input_mode:[ `Match | `Prompting of 'a Mode.prompt | `Single_key ] Lwd.var ->
+    ?match_text:string Lwd.var ->
+    ?errors:Errors.t ->
+    ?choice:int Lwd.var ->
+    ?debug:bool Lwd.var ->
+    ?modifier:Modifier.t ->
+    ?navigation_bindings:[ `Vimish of Modifier.t ] ->
+    ?vertical_max:int Lwd.var ->
+    'a Mode.t ->
+    'a t
 
   val current_mode : 'a t -> 'a Mode.t Lwd.t
   val peek_current_mode : 'a t -> 'a Mode.t
