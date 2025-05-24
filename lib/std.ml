@@ -15,6 +15,7 @@ module S = struct
 
   let map = Lwd.map
   let bind = Lwd.bind
+  let return = Lwd.pure
 
   module O = struct
     let ( let* ) x f = Lwd.bind x ~f
