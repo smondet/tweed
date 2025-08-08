@@ -139,7 +139,12 @@ let _clean_utf8 s =
   |> String.map ~f:(function '\x7f' | '\x96' | '\xc2' -> '~' | c -> c)
 
 let verbatim ?attr s : t =
-  Lwd.pure (Nottui_widgets.string ?attr (_clean_utf8 s))
+  Lwd.pure
+    (try Nottui_widgets.string ?attr (_clean_utf8 s)
+     with e ->
+       Fmt.kstr
+         (Nottui_widgets.string ~attr:Attr.(bg red ++ fg yellow))
+         "{E: %S}" (Exn.to_string e))
 
 let hbox : t list -> t = fun l -> pack Ui.pack_x l
 let vbox l = pack Ui.pack_y l
