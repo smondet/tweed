@@ -136,7 +136,7 @@ include S.O
 
 let _clean_utf8 s =
   Uunf_string.normalize_utf_8 `NFKD s
-  |> String.map ~f:(function '\x7f' -> '~' | c -> c)
+  |> String.map ~f:(function '\x7f' | '\x96' | '\xc2' -> '~' | c -> c)
 
 let verbatim ?attr s : t =
   Lwd.pure (Nottui_widgets.string ?attr (_clean_utf8 s))
