@@ -145,7 +145,9 @@ let verbatim ?attr s : t =
        Fmt.kstr
          (Nottui_widgets.string ~attr:Attr.(st bold ++ bg red ++ fg yellow))
          "{E: %s}"
-         (match e with Invalid_argument s -> s | e -> Exn.to_string e))
+         (match e with
+         | Invalid_argument s -> Fmt.str "%S" s
+         | e -> Exn.to_string e))
 
 let hbox : t list -> t = fun l -> pack Ui.pack_x l
 let vbox l = pack Ui.pack_y l
