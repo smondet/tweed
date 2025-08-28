@@ -519,7 +519,7 @@ module Modal_shortcuts = struct
 end
 
 module Run_ui = struct
-  let start = Ui_loop.run
+  let start = Nottui_unix.run
 end
 
 module Nottui_widgets = struct end
