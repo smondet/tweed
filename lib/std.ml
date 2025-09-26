@@ -277,19 +277,34 @@ module Modal_shortcuts = struct
     let mode ?vertical ?tag bindings = mode_dyn ?tag ?vertical (return bindings)
     let tag { tag; _ } = tag
 
-    let alphanumeric_key index =
+    let alphanumeric_key ?(zero_after_nine = false) index =
       try
         Option.some
           begin
             match index with
             | x when x < 0 -> assert false
-            | x when x <= 9 -> Char.of_int_exn (Char.to_int '0' + x)
+            | 9 when zero_after_nine -> '0'
+            | x when x <= 9 ->
+                Char.of_int_exn
+                  (Char.to_int '1' - (if zero_after_nine then 0 else 1) + x)
             | x when x - 9 <= 26 -> Char.of_int_exn (Char.to_int 'a' + x - 10)
             | x when x - 9 - 26 <= 26 ->
                 Char.of_int_exn (Char.to_int 'A' + x - 10 - 26)
             | _ -> assert false
           end
       with _ -> None
+
+    let%expect_test _ =
+      let p x = Fmt.pr "%a\n%!" Fmt.(Dump.list (Dump.option char)) x in
+      p (List.init 16 ~f:alphanumeric_key);
+      [%expect {|
+        [Some 0; Some 1; Some 2; Some 3; Some 4; Some 5; Some 6; Some 7; Some 8;
+         Some 9; Some a; Some b; Some c; Some d; Some e; Some f] |}];
+      p (List.init 16 ~f:(alphanumeric_key ~zero_after_nine:true));
+      [%expect {|
+        [Some 1; Some 2; Some 3; Some 4; Some 5; Some 6; Some 7; Some 8; Some 9;
+         Some 0; Some a; Some b; Some c; Some d; Some e; Some f] |}];
+      ()
   end
 
   module Modifier = struct
