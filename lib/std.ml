@@ -297,11 +297,13 @@ module Modal_shortcuts = struct
     let%expect_test _ =
       let p x = Fmt.pr "%a\n%!" Fmt.(Dump.list (Dump.option char)) x in
       p (List.init 16 ~f:alphanumeric_key);
-      [%expect {|
+      [%expect
+        {|
         [Some 0; Some 1; Some 2; Some 3; Some 4; Some 5; Some 6; Some 7; Some 8;
          Some 9; Some a; Some b; Some c; Some d; Some e; Some f] |}];
       p (List.init 16 ~f:(alphanumeric_key ~zero_after_nine:true));
-      [%expect {|
+      [%expect
+        {|
         [Some 1; Some 2; Some 3; Some 4; Some 5; Some 6; Some 7; Some 8; Some 9;
          Some 0; Some a; Some b; Some c; Some d; Some e; Some f] |}];
       ()
