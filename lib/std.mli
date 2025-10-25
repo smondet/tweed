@@ -171,7 +171,8 @@ module Modal_shortcuts : sig
     val mode : ?vertical:bool Lwd.t -> ?tag:'a -> 'a shortcut list -> 'a t
     val tag : 'a t -> 'a option
 
-    val alphanumeric_key : ?zero_after_nine:bool -> int -> char option
+    val alphanumeric_key :
+      ?skip:char list -> ?zero_after_nine:bool -> int -> char option
     (** Get a character from an “index” → '0', '1' … '9', 'a' … 'z', 'A' … 'Z'.
         [zero_after_nine] is [false] by default. *)
   end

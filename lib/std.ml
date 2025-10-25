@@ -277,9 +277,9 @@ module Modal_shortcuts = struct
     let mode ?vertical ?tag bindings = mode_dyn ?tag ?vertical (return bindings)
     let tag { tag; _ } = tag
 
-    let alphanumeric_key ?(zero_after_nine = false) index =
+    let rec alphanumeric_key ?(skip = []) ?(zero_after_nine = false) index =
       try
-        Option.some
+        let got =
           begin
             match index with
             | x when x < 0 -> assert false
@@ -292,6 +292,10 @@ module Modal_shortcuts = struct
                 Char.of_int_exn (Char.to_int 'A' + x - 10 - 26)
             | _ -> assert false
           end
+        in
+        if List.mem skip got ~equal:Char.equal then
+          alphanumeric_key ~skip ~zero_after_nine (index + 1)
+        else Option.some got
       with _ -> None
 
     let%expect_test _ =
