@@ -240,6 +240,8 @@ end
 
 module Modal_shortcuts = struct
   module Mode = struct
+    type ui_t = t
+
     type 'tag action_result =
       [ `Mode of 'tag t | `Home | `Up | `Quit | `Stay | `Prompt of 'tag prompt ]
 
@@ -261,6 +263,8 @@ module Modal_shortcuts = struct
       tag : 'tag option;
       vertical : bool S.t;
       bindings : 'tag shortcut list S.t;
+      header : ui_t;
+      footer : ui_t;
     }
 
     let entry ?key name ~action = On_key { key; name; action }
@@ -271,10 +275,13 @@ module Modal_shortcuts = struct
     let prompt ~label ?(initial_value = "") action =
       { label; action; initial_value }
 
-    let mode_dyn ?(vertical = return true) ?tag bindings =
-      { tag; bindings; vertical }
+    let mode_dyn ?(vertical = return true) ?(header = empty ())
+        ?(footer = empty ()) ?tag bindings =
+      { tag; bindings; vertical; header; footer }
 
-    let mode ?vertical ?tag bindings = mode_dyn ?tag ?vertical (return bindings)
+    let mode ?vertical ?header ?footer ?tag bindings =
+      mode_dyn ?tag ?vertical ?header ?footer (return bindings)
+
     let tag { tag; _ } = tag
 
     let rec alphanumeric_key ?(skip = []) ?(zero_after_nine = false) index =
@@ -389,7 +396,7 @@ module Modal_shortcuts = struct
       | `Mode s -> set_mode_stack (s :: V.peek self.mode_stack)
       | exception e -> Errors.add_exn self.errors e
     in
-    let of_mode { Mode.vertical; _ } =
+    let of_mode { Mode.vertical; footer; header; _ } =
       let* vertical = vertical
       and* current_choice = V.get self.choice
       and* input_mode = V.get self.input_mode
@@ -461,24 +468,26 @@ module Modal_shortcuts = struct
       in
       let area =
         scoped_ui
-          (S.bind items ~f:(fun items ->
-               if vertical then
-                 let lgth = List.length items in
-                 if lgth > vertical_max then begin
-                   let lines = vertical_max in
-                   let lists =
-                     List.init lines ~f:(fun _i ->
-                         ref [ (* Fmt.kstr verbatim "item: %d" i *) ])
-                   in
-                   List.iteri items ~f:(fun ith item ->
-                       let l = List.nth_exn lists Int.O.(ith % lines) in
-                       l := item :: !l);
-                   let chunks = List.map lists ~f:(fun l -> List.rev !l) in
-                   (* List.chunks_of items ~length:(lgth / vertical_max) in *)
-                   grid ~h_space:2 chunks
-                 end
-                 else vbox items
-               else hbox (List.intersperse ~sep:(space 1 0) items)))
+          (header
+          --- S.bind items ~f:(fun items ->
+                  if vertical then
+                    let lgth = List.length items in
+                    if lgth > vertical_max then begin
+                      let lines = vertical_max in
+                      let lists =
+                        List.init lines ~f:(fun _i ->
+                            ref [ (* Fmt.kstr verbatim "item: %d" i *) ])
+                      in
+                      List.iteri items ~f:(fun ith item ->
+                          let l = List.nth_exn lists Int.O.(ith % lines) in
+                          l := item :: !l);
+                      let chunks = List.map lists ~f:(fun l -> List.rev !l) in
+                      (* List.chunks_of items ~length:(lgth / vertical_max) in *)
+                      grid ~h_space:2 chunks
+                    end
+                    else vbox items
+                  else hbox (List.intersperse ~sep:(space 1 0) items))
+          --- footer)
         --- Debug.(
               if_var self.debug @@ fun () ->
               let* l = V.get logs in

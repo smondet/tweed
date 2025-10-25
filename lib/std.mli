@@ -123,6 +123,8 @@ end
 
 module Modal_shortcuts : sig
   module Mode : sig
+    type ui_t = t
+
     type 'tag action_result =
       [ `Home | `Mode of 'tag t | `Prompt of 'tag prompt | `Quit | `Stay | `Up ]
 
@@ -143,6 +145,8 @@ module Modal_shortcuts : sig
       tag : 'tag option;
       vertical : bool Lwd.t;
       bindings : 'tag shortcut list Lwd.t;
+      header : ui_t;
+      footer : ui_t;
     }
 
     val entry :
@@ -166,9 +170,21 @@ module Modal_shortcuts : sig
       'a prompt
 
     val mode_dyn :
-      ?vertical:bool Lwd.t -> ?tag:'a -> 'a shortcut list Lwd.t -> 'a t
+      ?vertical:bool Lwd.t ->
+      ?header:ui_t ->
+      ?footer:ui_t ->
+      ?tag:'a ->
+      'a shortcut list Lwd.t ->
+      'a t
 
-    val mode : ?vertical:bool Lwd.t -> ?tag:'a -> 'a shortcut list -> 'a t
+    val mode :
+      ?vertical:bool Lwd.t ->
+      ?header:ui_t ->
+      ?footer:ui_t ->
+      ?tag:'a ->
+      'a shortcut list ->
+      'a t
+
     val tag : 'a t -> 'a option
 
     val alphanumeric_key :
