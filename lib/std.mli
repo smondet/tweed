@@ -186,6 +186,7 @@ module Modal_shortcuts : sig
       'a t
 
     val tag : 'a t -> 'a option
+    val collect_keys : 'a shortcut list -> char list
 
     val alphanumeric_key :
       ?skip:char list -> ?zero_after_nine:bool -> int -> char option

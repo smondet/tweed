@@ -305,6 +305,9 @@ module Modal_shortcuts = struct
         else Option.some got
       with _ -> None
 
+    let collect_keys l =
+      List.filter_map l ~f:(function On_key { key; _ } -> key)
+
     let%expect_test _ =
       let p x = Fmt.pr "%a\n%!" Fmt.(Dump.list (Dump.option char)) x in
       p (List.init 16 ~f:alphanumeric_key);
