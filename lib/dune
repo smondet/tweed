@@ -1,7 +1,7 @@
 (library
  (name tweed)
  (public_name tweed)
- (libraries threads unix fmt base nottui)
+ (libraries threads unix fmt base nottui nottui-unix uunf)
  (inline_tests)
  (preprocess
   (pps

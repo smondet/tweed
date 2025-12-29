@@ -6,6 +6,7 @@ module S : sig
 
   val map : 'a t -> f:('a -> 'b) -> 'b t
   val bind : 'a t -> f:('a -> 'b t) -> 'b t
+  val return : 'a -> 'a t
 
   module O : sig
     val ( let* ) : 'a t -> ('a -> 'b t) -> 'b t
@@ -122,6 +123,8 @@ end
 
 module Modal_shortcuts : sig
   module Mode : sig
+    type ui_t = t
+
     type 'tag action_result =
       [ `Home | `Mode of 'tag t | `Prompt of 'tag prompt | `Quit | `Stay | `Up ]
 
@@ -142,6 +145,8 @@ module Modal_shortcuts : sig
       tag : 'tag option;
       vertical : bool Lwd.t;
       bindings : 'tag shortcut list Lwd.t;
+      header : ui_t;
+      footer : ui_t;
     }
 
     val entry :
@@ -165,10 +170,28 @@ module Modal_shortcuts : sig
       'a prompt
 
     val mode_dyn :
-      ?vertical:bool Lwd.t -> ?tag:'a -> 'a shortcut list Lwd.t -> 'a t
+      ?vertical:bool Lwd.t ->
+      ?header:ui_t ->
+      ?footer:ui_t ->
+      ?tag:'a ->
+      'a shortcut list Lwd.t ->
+      'a t
 
-    val mode : ?vertical:bool Lwd.t -> ?tag:'a -> 'a shortcut list -> 'a t
+    val mode :
+      ?vertical:bool Lwd.t ->
+      ?header:ui_t ->
+      ?footer:ui_t ->
+      ?tag:'a ->
+      'a shortcut list ->
+      'a t
+
     val tag : 'a t -> 'a option
+    val collect_keys : 'a shortcut list -> char list
+
+    val alphanumeric_key :
+      ?skip:char list -> ?zero_after_nine:bool -> int -> char option
+    (** Get a character from an “index” → '0', '1' … '9', 'a' … 'z', 'A' … 'Z'.
+        [zero_after_nine] is [false] by default. *)
   end
 
   module Modifier : sig
@@ -176,19 +199,20 @@ module Modal_shortcuts : sig
     [@@deriving sexp, compare, equal, variants, show]
   end
 
-  type 'tag t = {
-    root : 'tag Mode.t; [@main]
-    mode_stack : 'tag Mode.t list V.t; [@default V.make []]
-    input_mode : [ `Single_key | `Match | `Prompting of 'tag Mode.prompt ] V.t;
-        [@default V.make `Single_key]
-    match_text : string V.t; [@default V.make ""]
-    errors : Errors.t; [@default Errors.make ()]
-    choice : int V.t; [@default V.make 0]
-    debug : bool V.t; [@default V.make false]
-    modifier : Modifier.t option;
-    navigation_bindings : [ `Vimish of Modifier.t ]; [@default `Vimish `Meta]
-  }
-  [@@deriving fields, make]
+  type 'tag t
+
+  val make :
+    ?mode_stack:'a Mode.t list Lwd.var ->
+    ?input_mode:[ `Match | `Prompting of 'a Mode.prompt | `Single_key ] Lwd.var ->
+    ?match_text:string Lwd.var ->
+    ?errors:Errors.t ->
+    ?choice:int Lwd.var ->
+    ?debug:bool Lwd.var ->
+    ?modifier:Modifier.t ->
+    ?navigation_bindings:[ `Vimish of Modifier.t ] ->
+    ?vertical_max:int Lwd.var ->
+    'a Mode.t ->
+    'a t
 
   val current_mode : 'a t -> 'a Mode.t Lwd.t
   val peek_current_mode : 'a t -> 'a Mode.t

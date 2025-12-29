@@ -15,6 +15,7 @@ module S = struct
 
   let map = Lwd.map
   let bind = Lwd.bind
+  let return = Lwd.pure
 
   module O = struct
     let ( let* ) x f = Lwd.bind x ~f
@@ -133,7 +134,21 @@ open Internal
 module Attr = Notty.A
 include S.O
 
-let verbatim ?attr s : t = Lwd.pure (Nottui_widgets.string ?attr s)
+let _clean_utf8 s =
+  Uunf_string.normalize_utf_8 `NFKD s
+  |> String.map ~f:(function '\x7f' | '\x96' | '\xc2' -> '~' | c -> c)
+
+let verbatim ?attr s : t =
+  Lwd.pure
+    (try Nottui_widgets.string ?attr (_clean_utf8 s)
+     with e ->
+       Fmt.kstr
+         (Nottui_widgets.string ~attr:Attr.(st bold ++ bg red ++ fg yellow))
+         "{E: %s}"
+         (match e with
+         | Invalid_argument s -> Fmt.str "%S" s
+         | e -> Exn.to_string e))
+
 let hbox : t list -> t = fun l -> pack Ui.pack_x l
 let vbox l = pack Ui.pack_y l
 let zbox l = pack Ui.pack_z l
@@ -225,6 +240,8 @@ end
 
 module Modal_shortcuts = struct
   module Mode = struct
+    type ui_t = t
+
     type 'tag action_result =
       [ `Mode of 'tag t | `Home | `Up | `Quit | `Stay | `Prompt of 'tag prompt ]
 
@@ -246,6 +263,8 @@ module Modal_shortcuts = struct
       tag : 'tag option;
       vertical : bool S.t;
       bindings : 'tag shortcut list S.t;
+      header : ui_t;
+      footer : ui_t;
     }
 
     let entry ?key name ~action = On_key { key; name; action }
@@ -256,11 +275,52 @@ module Modal_shortcuts = struct
     let prompt ~label ?(initial_value = "") action =
       { label; action; initial_value }
 
-    let mode_dyn ?(vertical = return true) ?tag bindings =
-      { tag; bindings; vertical }
+    let mode_dyn ?(vertical = return true) ?(header = empty ())
+        ?(footer = empty ()) ?tag bindings =
+      { tag; bindings; vertical; header; footer }
 
-    let mode ?vertical ?tag bindings = mode_dyn ?tag ?vertical (return bindings)
+    let mode ?vertical ?header ?footer ?tag bindings =
+      mode_dyn ?tag ?vertical ?header ?footer (return bindings)
+
     let tag { tag; _ } = tag
+
+    let rec alphanumeric_key ?(skip = []) ?(zero_after_nine = false) index =
+      try
+        let got =
+          begin
+            match index with
+            | x when x < 0 -> assert false
+            | 9 when zero_after_nine -> '0'
+            | x when x <= 9 ->
+                Char.of_int_exn
+                  (Char.to_int '1' - (if zero_after_nine then 0 else 1) + x)
+            | x when x - 9 <= 26 -> Char.of_int_exn (Char.to_int 'a' + x - 10)
+            | x when x - 9 - 26 <= 26 ->
+                Char.of_int_exn (Char.to_int 'A' + x - 10 - 26)
+            | _ -> assert false
+          end
+        in
+        if List.mem skip got ~equal:Char.equal then
+          alphanumeric_key ~skip ~zero_after_nine (index + 1)
+        else Option.some got
+      with _ -> None
+
+    let collect_keys l =
+      List.filter_map l ~f:(function On_key { key; _ } -> key)
+
+    let%expect_test _ =
+      let p x = Fmt.pr "%a\n%!" Fmt.(Dump.list (Dump.option char)) x in
+      p (List.init 16 ~f:alphanumeric_key);
+      [%expect
+        {|
+        [Some 0; Some 1; Some 2; Some 3; Some 4; Some 5; Some 6; Some 7; Some 8;
+         Some 9; Some a; Some b; Some c; Some d; Some e; Some f] |}];
+      p (List.init 16 ~f:(alphanumeric_key ~zero_after_nine:true));
+      [%expect
+        {|
+        [Some 1; Some 2; Some 3; Some 4; Some 5; Some 6; Some 7; Some 8; Some 9;
+         Some 0; Some a; Some b; Some c; Some d; Some e; Some f] |}];
+      ()
   end
 
   module Modifier = struct
@@ -279,6 +339,7 @@ module Modal_shortcuts = struct
     debug : bool V.t; [@default V.make false]
     modifier : Modifier.t option;
     navigation_bindings : [ `Vimish of Modifier.t ]; [@default `Vimish `Meta]
+    vertical_max : int V.t; [@default V.make 30]
   }
   [@@deriving fields, make]
 
@@ -338,11 +399,12 @@ module Modal_shortcuts = struct
       | `Mode s -> set_mode_stack (s :: V.peek self.mode_stack)
       | exception e -> Errors.add_exn self.errors e
     in
-    let of_mode { Mode.vertical; _ } =
+    let of_mode { Mode.vertical; footer; header; _ } =
       let* vertical = vertical
       and* current_choice = V.get self.choice
       and* input_mode = V.get self.input_mode
-      and* bindings = filter_bindings self in
+      and* bindings = filter_bindings self
+      and* vertical_max = V.get self.vertical_max in
       let run_current_choice () =
         match List.nth bindings current_choice with
         | Some (On_key { action; _ }) -> run_action action
@@ -409,10 +471,26 @@ module Modal_shortcuts = struct
       in
       let area =
         scoped_ui
-          (S.bind items
-             ~f:
-               (if vertical then vbox
-                else fun items -> hbox (List.intersperse ~sep:(space 1 0) items)))
+          (header
+          --- S.bind items ~f:(fun items ->
+                  if vertical then
+                    let lgth = List.length items in
+                    if lgth > vertical_max then begin
+                      let lines = vertical_max in
+                      let lists =
+                        List.init lines ~f:(fun _i ->
+                            ref [ (* Fmt.kstr verbatim "item: %d" i *) ])
+                      in
+                      List.iteri items ~f:(fun ith item ->
+                          let l = List.nth_exn lists Int.O.(ith % lines) in
+                          l := item :: !l);
+                      let chunks = List.map lists ~f:(fun l -> List.rev !l) in
+                      (* List.chunks_of items ~length:(lgth / vertical_max) in *)
+                      grid ~h_space:2 chunks
+                    end
+                    else vbox items
+                  else hbox (List.intersperse ~sep:(space 1 0) items))
+          --- footer)
         --- Debug.(
               if_var self.debug @@ fun () ->
               let* l = V.get logs in
@@ -474,7 +552,7 @@ module Modal_shortcuts = struct
 end
 
 module Run_ui = struct
-  let start = Ui_loop.run
+  let start = Nottui_unix.run
 end
 
 module Nottui_widgets = struct end
